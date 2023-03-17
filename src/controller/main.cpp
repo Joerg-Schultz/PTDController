@@ -1,6 +1,5 @@
 #include <Arduino.h>
 #include <BluetoothSerial.h>
-#include <WiFi.h>
 #include "Controller.h"
 
 Controller* controller;

@@ -15,20 +15,12 @@ private:
     String name;
     String macAddress;
 public:
-    explicit Controller(String controller_name) {
-        name = std::move(controller_name);
-    }
+    explicit Controller(String controller_name);
 
-    Controller() {
-        name = default_name;
-    }
+    Controller();
 
-    String getName() {
-        return name;
-    }
-    String getMacAddress() {
-        return macAddress;
-    }
+    String getName();
+    String getMacAddress();
 
     String start();
 };
