@@ -1,3 +1,3 @@
 # PTDController
 
-![PTDControllerFigure.png]
+![Overview](PTDControllerFigure.png)
