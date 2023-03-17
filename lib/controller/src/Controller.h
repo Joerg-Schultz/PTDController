@@ -8,6 +8,8 @@
 #include <WString.h>
 #include <utility>
 
+#define default_name "PTDController"
+
 class Controller {
 private:
     String name;
@@ -15,6 +17,10 @@ private:
 public:
     explicit Controller(String controller_name) {
         name = std::move(controller_name);
+    }
+
+    Controller() {
+        name = default_name;
     }
 
     String getName() {

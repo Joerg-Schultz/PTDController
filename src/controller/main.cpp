@@ -3,14 +3,15 @@
 #include <WiFi.h>
 #include "Controller.h"
 
-const String name = "PTDController";
+Controller* controller;
 
 BluetoothSerial SerialBT;
 void setup() {
     Serial.begin(115200);
-    SerialBT.begin(name);
-    Controller controller = Controller(name);
-    String macAddress = controller.start();
+    controller = new Controller();
+    SerialBT.begin(controller->getName());
+
+    String macAddress = controller->start();
     Serial.print("AP MAC: ");
     Serial.println(macAddress);
 }
