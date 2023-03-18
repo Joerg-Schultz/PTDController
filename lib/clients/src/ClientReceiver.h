@@ -19,6 +19,8 @@ public:
     String getMacAddress();
 
     String start();
+
+    bool searchController();
 };
 
 

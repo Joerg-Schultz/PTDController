@@ -1,5 +1,4 @@
 #include <Arduino.h>
-#include <WiFi.h>
 #include "ClientReceiver.h"
 
 ClientReceiver* feeder;
@@ -11,6 +10,7 @@ void setup() {
     String macAddress = feeder->start();
     Serial.print("STA MAC: ");
     Serial.println(macAddress);
+    feeder->searchController();
 }
 
 void loop() {
