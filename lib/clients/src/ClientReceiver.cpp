@@ -32,6 +32,13 @@ String ClientReceiver::start() {
     return macAddress;
 }
 
+bool ClientReceiver::sendToController(String clientMessage) {
+    message messageToSend;
+    messageToSend.content = clientMessage;
+    esp_err_t result = esp_now_send(controller.peer_addr, (uint8_t *) &clientMessage, sizeof(message));
+    return result == ESP_OK;
+}
+
 bool ClientReceiver::searchController() {
     int16_t scanResults = WiFi.scanNetworks();
     if (scanResults == 0) {
@@ -46,7 +53,6 @@ bool ClientReceiver::searchController() {
         ESP_LOGI(TAG, "Device %d name is %s", i, SSID.c_str());
         if (SSID.indexOf("PTDController") == 0) {
             ESP_LOGI(TAG,"Is Controller");
-            esp_now_peer_info_t controller = {};
             controller.channel = 1;
             controller.encrypt = 0;
             int mac[6];
@@ -59,6 +65,7 @@ bool ClientReceiver::searchController() {
             esp_err_t addStatus = esp_now_add_peer(&controller);
             if (addStatus == ESP_OK) {
                 ESP_LOGI(TAG, "Pair success");
+                sendToController("hallo");
             } else {
                 ESP_LOGI(TAG, "Pair fail");
             }

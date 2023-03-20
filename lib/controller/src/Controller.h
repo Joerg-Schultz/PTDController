@@ -7,8 +7,13 @@
 
 #include <WString.h>
 #include <utility>
+#include <vector>
 
 #define default_name "PTDController"
+
+struct message {
+    String content;
+};
 
 class Controller {
 private:
@@ -23,6 +28,8 @@ public:
     String getMacAddress();
 
     String start();
+
+    static void OnDataRecv(const uint8_t *mac, const uint8_t *incomingData, int len);
 };
 
 

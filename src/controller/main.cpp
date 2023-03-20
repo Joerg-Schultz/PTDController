@@ -1,8 +1,11 @@
 #include <Arduino.h>
 #include <BluetoothSerial.h>
 #include "Controller.h"
+#include <esp_now.h>
+#include "WiFi.h"
 
 Controller* controller;
+esp_now_peer_num_t *peer_num;
 
 BluetoothSerial SerialBT;
 void setup() {
