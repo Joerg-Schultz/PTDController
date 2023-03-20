@@ -5,6 +5,7 @@
 #include <WiFi.h>
 #include <esp_wifi.h>
 #include <esp_now.h>
+#include <ArduinoJson.h>
 #include "ClientReceiver.h"
 
 static const char* TAG = "Receiver";
@@ -32,11 +33,23 @@ String ClientReceiver::start() {
     return macAddress;
 }
 
-bool ClientReceiver::sendToController(String clientMessage) {
-    message messageToSend;
-    messageToSend.content = clientMessage;
-    esp_err_t result = esp_now_send(controller.peer_addr, (uint8_t *) &clientMessage, sizeof(message));
+bool ClientReceiver::sendToController(char jsonString[64]) {
+    message myMessage = {};
+    memcpy(&myMessage.content, jsonString, sizeof(myMessage.content));
+    esp_err_t result = esp_now_send(controller.peer_addr, (uint8_t *) &myMessage, sizeof(myMessage) + 2);  //Sending "jsondata"
+    ESP_LOGI(TAG, "Send content: %s", myMessage.content);
     return result == ESP_OK;
+}
+
+void ClientReceiver::introduceToController() {
+    // TODO on the controller, add the Client as peer
+    StaticJsonDocument<400> doc;
+    doc["action"] = "intro"; // TODO use Enum type.
+    doc["type"] = type;
+    char jsonData [64] = ""; // TODO #define the length of content
+    serializeJson(doc, jsonData);
+    ESP_LOGI(TAG, "%s", jsonData);
+    sendToController(jsonData);
 }
 
 bool ClientReceiver::searchController() {
@@ -50,9 +63,8 @@ bool ClientReceiver::searchController() {
     for (int i = 0; i < scanResults; ++i) {
         String SSID = WiFi.SSID(i);
         String BSSIDstr = WiFi.BSSIDstr(i);
-        ESP_LOGI(TAG, "Device %d name is %s", i, SSID.c_str());
         if (SSID.indexOf("PTDController") == 0) {
-            ESP_LOGI(TAG,"Is Controller");
+            ESP_LOGI(TAG, "Device %d name is %s", i, SSID.c_str());
             controller.channel = 1;
             controller.encrypt = 0;
             int mac[6];
@@ -65,7 +77,7 @@ bool ClientReceiver::searchController() {
             esp_err_t addStatus = esp_now_add_peer(&controller);
             if (addStatus == ESP_OK) {
                 ESP_LOGI(TAG, "Pair success");
-                sendToController("hallo");
+                introduceToController();
             } else {
                 ESP_LOGI(TAG, "Pair fail");
             }

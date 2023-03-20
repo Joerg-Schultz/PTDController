@@ -12,7 +12,7 @@
 #define default_name "PTDController"
 
 struct message {
-    String content;
+    char content[64];
 };
 
 class Controller {

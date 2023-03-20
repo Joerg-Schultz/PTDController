@@ -6,6 +6,7 @@
 #include <esp_wifi.h>
 #include <esp_now.h>
 #include <vector>
+#include <ArduinoJson.h>
 #include "Controller.h"
 
 static const char* TAG = "Controller";
@@ -23,10 +24,27 @@ String Controller::getMacAddress() {
 }
 
 void Controller::OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
+    //ESP_LOGI(TAG, "Message from %s", mac);
+    StaticJsonDocument<400> doc;
     message incomingMessage;
+    memcpy(&incomingMessage, incomingData, sizeof(incomingMessage));
+    String jsonData = String(incomingMessage.content);
+    ESP_LOGI(TAG, "Got message: %s", incomingMessage.content);
+    DeserializationError error = deserializeJson(doc, jsonData);
+
+    if (!error) {
+        const char* type = doc["type"];
+        ESP_LOGI(TAG, "Got message: %s", type);
+        const char* action = doc["action"];
+        ESP_LOGI(TAG, "Got message: %s", action);
+    } else {
+        Serial.print(F("deserializeJson() failed: "));  //Just in case of an ERROR of ArduinoJSon
+        Serial.println(error.f_str());
+    }
+/*    message incomingMessage;
     ESP_LOGI(TAG, "Got message");
     memcpy(&incomingMessage, incomingData, sizeof(incomingMessage));
-    ESP_LOGI(TAG, "Content: %s", incomingMessage);
+    ESP_LOGI(TAG, "Content: %s", incomingMessage); */
 }
 
 String Controller::start() {

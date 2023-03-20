@@ -11,7 +11,7 @@
 #include <esp_now.h>
 
 struct message {
-    String content;
+    char content[64];
 };
 
 class ClientReceiver {
@@ -30,7 +30,9 @@ public:
     bool searchController();
 
 private:
-    bool sendToController(String message);
+    bool sendToController(char* jsonString);
+
+    void introduceToController();
 };
 
 
