@@ -24,7 +24,6 @@ String Controller::getMacAddress() {
 }
 
 void Controller::OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
-    //ESP_LOGI(TAG, "Message from %s", mac);
     StaticJsonDocument<400> doc;
     message incomingMessage;
     memcpy(&incomingMessage, incomingData, sizeof(incomingMessage));
@@ -41,10 +40,19 @@ void Controller::OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, in
         Serial.print(F("deserializeJson() failed: "));  //Just in case of an ERROR of ArduinoJSon
         Serial.println(error.f_str());
     }
-/*    message incomingMessage;
-    ESP_LOGI(TAG, "Got message");
-    memcpy(&incomingMessage, incomingData, sizeof(incomingMessage));
-    ESP_LOGI(TAG, "Content: %s", incomingMessage); */
+
+    esp_now_peer_info_t client = {};
+    client.channel = 1;
+    client.encrypt = 0;
+    for (int i = 0; i < 6; ++i) {
+        client.peer_addr[i] = (uint8_t) mac[i];
+    }
+    esp_err_t addStatus = esp_now_add_peer(&client);
+    if (addStatus == ESP_OK) {
+        ESP_LOGI(TAG, "Pair success");
+    } else {
+        ESP_LOGI(TAG, "Pair fail");
+    }
 }
 
 String Controller::start() {
