@@ -12,11 +12,12 @@
 static const char* TAG = "Controller";
 #define CHANNEL 1
 static const int msg_queue_len = 5;
-QueueHandle_t msg_queue;
+static const int jsonDocumentSize = 1024;
+QueueHandle_t Controller::msg_queue = xQueueCreate(msg_queue_len, sizeof(StaticJsonDocument<jsonDocumentSize>));
+
 
 Controller::Controller(String controller_name) {
     name = std::move(controller_name);
-    msg_queue = xQueueCreate(msg_queue_len, sizeof(StaticJsonDocument<1024>));
 }
 Controller::Controller() : Controller(default_name){
 }
@@ -26,7 +27,7 @@ String Controller::getMacAddress() {
 }
 
 void Controller::addToQueue(const uint8_t* mac, clientMessage newMessage) {
-    StaticJsonDocument<1024> doc;
+    StaticJsonDocument<jsonDocumentSize> doc;
     ESP_LOGI(TAG, "Got message: %s", newMessage.content);
     DeserializationError error = deserializeJson(doc, newMessage.content);
 

@@ -16,6 +16,9 @@ void setup() {
     String macAddress = controller->start();
     Serial.print("AP MAC: ");
     Serial.println(macAddress);
+
+    // Queue superviser
+
 }
 
 void loop() {

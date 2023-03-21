@@ -8,6 +8,7 @@
 #include <WString.h>
 #include <utility>
 #include <vector>
+#include <esp_now.h>
 
 #define default_name "PTDController"
 
@@ -15,15 +16,19 @@ struct clientMessage {
     char content[64];
 };
 
-/*
-struct jsonMessage {
-    StaticJsonDocument<1024> messageDoc;
-}; */
+struct client {
+    String macAddress;
+    String type;
+};
 
 class Controller {
 private:
     String name;
     String macAddress;
+    client clients[ESP_NOW_MAX_TOTAL_PEER_NUM];
+public:
+    static QueueHandle_t msg_queue; //Class variable not happy to have it public...
+
 public:
     explicit Controller(String controller_name);
 
