@@ -43,7 +43,8 @@ private:
     static void OnDataRecv(const uint8_t *mac, const uint8_t *incomingData, int len);
 
     static void addToQueue(const uint8_t *mac, clientMessage input);
-};
 
+    static void readFromQueue(void *parameters);
+};
 
 #endif //PTDCONTROLLER_CONTROLLER_H

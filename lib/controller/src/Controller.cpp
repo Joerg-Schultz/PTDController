@@ -15,6 +15,17 @@ static const int msg_queue_len = 5;
 static const int jsonDocumentSize = 1024;
 QueueHandle_t Controller::msg_queue = xQueueCreate(msg_queue_len, sizeof(StaticJsonDocument<jsonDocumentSize>));
 
+String mac2String(const uint8_t * mac) {
+    String macString;
+    for (byte i = 0; i < 6; ++i)
+    {
+        char buf[3];
+        sprintf(buf, "%02X", mac[i]); // J-M-L: slight modification, added the 0 in the format for padding
+        macString += buf;
+        if (i < 5) macString += ':';
+    }
+    return macString;
+}
 
 Controller::Controller(String controller_name) {
     name = std::move(controller_name);
@@ -28,23 +39,9 @@ String Controller::getMacAddress() {
 
 void Controller::addToQueue(const uint8_t* mac, clientMessage newMessage) {
     StaticJsonDocument<jsonDocumentSize> doc;
-    ESP_LOGI(TAG, "Got message: %s", newMessage.content);
     DeserializationError error = deserializeJson(doc, newMessage.content);
-
     if (!error) {
-        // TODO make this a helper function mac2String
-        String macString;
-        for (byte i = 0; i < 6; ++i)
-        {
-            char buf[3];
-            sprintf(buf, "%02X", mac[i]); // J-M-L: slight modification, added the 0 in the format for padding
-            macString += buf;
-            if (i < 5) macString += ':';
-        }
-        doc["sender"] = macString;
-        String reportJson;
-        serializeJson(doc, reportJson);
-        ESP_LOGI(TAG, "into Queue: %s", reportJson.c_str());
+        doc["sender"] = mac2String(mac);
         xQueueSend(msg_queue, (void *)&doc, 10);
     } else {
         ESP_LOGE(TAG, "deserializeJson() failed: %s", error.c_str());
@@ -74,6 +71,18 @@ void Controller::OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, in
      */
 }
 
+void Controller::readFromQueue(void * parameters) {
+    StaticJsonDocument<jsonDocumentSize> doc;
+    while(1) {
+        if (xQueueReceive(msg_queue, (void *)&doc, 0) == pdTRUE) {
+            String reportJson;
+            serializeJson(doc, reportJson);
+            ESP_LOGI(TAG, "From Queue: %s", reportJson.c_str());
+            }
+        }
+    }
+}
+
 String Controller::start() {
     WiFi.mode(WIFI_MODE_AP);
     esp_wifi_set_protocol(WIFI_IF_AP, WIFI_PROTOCOL_LR);
@@ -91,6 +100,13 @@ String Controller::start() {
     String espMessage = (espResult == ESP_OK) ? "ESPNow Init Success" : "ESPNow Init Failed";
     ESP_LOGI(TAG, "%s", espMessage.c_str());
     esp_now_register_recv_cb(&Controller::OnDataRecv);
+
+    xTaskCreate(&Controller::readFromQueue,
+                "Record",
+                4096,
+                NULL,
+                0,
+                NULL);
     return macAddress;
 }
 
