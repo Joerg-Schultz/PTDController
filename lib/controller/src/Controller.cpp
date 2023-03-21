@@ -32,7 +32,19 @@ void Controller::addToQueue(const uint8_t* mac, clientMessage newMessage) {
     DeserializationError error = deserializeJson(doc, newMessage.content);
 
     if (!error) {
-        doc["sender"] = (char*) mac;
+        // TODO make this a helper function mac2String
+        String macString;
+        for (byte i = 0; i < 6; ++i)
+        {
+            char buf[3];
+            sprintf(buf, "%02X", mac[i]); // J-M-L: slight modification, added the 0 in the format for padding
+            macString += buf;
+            if (i < 5) macString += ':';
+        }
+        doc["sender"] = macString;
+        String reportJson;
+        serializeJson(doc, reportJson);
+        ESP_LOGI(TAG, "into Queue: %s", reportJson.c_str());
         xQueueSend(msg_queue, (void *)&doc, 10);
     } else {
         ESP_LOGE(TAG, "deserializeJson() failed: %s", error.c_str());
