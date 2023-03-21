@@ -17,17 +17,18 @@ struct clientMessage {
 };
 
 struct client {
-    String macAddress;
+    String clientAddress;
     String type;
 };
 
 class Controller {
 private:
-    String name;
-    String macAddress;
-    client clients[ESP_NOW_MAX_TOTAL_PEER_NUM];
+    static String name;
+    static String macAddress;
 public:
     static QueueHandle_t msg_queue; //Class variable not happy to have it public...
+    static client clientList[ESP_NOW_MAX_TOTAL_PEER_NUM];
+    static int clientCount;
 
 public:
     explicit Controller(String controller_name);
@@ -37,7 +38,7 @@ public:
     String getName();
     String getMacAddress();
 
-    String start();
+    static String start();
 
 private:
     static void OnDataRecv(const uint8_t *mac, const uint8_t *incomingData, int len);
@@ -45,6 +46,8 @@ private:
     static void addToQueue(const uint8_t *mac, clientMessage input);
 
     static void readFromQueue(void *parameters);
+
+    static bool pairWithClient(const String &sender);
 };
 
 #endif //PTDCONTROLLER_CONTROLLER_H

@@ -43,7 +43,7 @@ bool ClientReceiver::sendToController(char jsonString[64]) {
 
 void ClientReceiver::introduceToController() {
     StaticJsonDocument<400> doc;
-    doc["action"] = "intro"; // TODO use Enum type.
+    doc["action"] = "handshake"; // TODO use Enum type.
     doc["type"] = type;
     char jsonData [64] = ""; // TODO #define the length of content
     serializeJson(doc, jsonData);

@@ -29,6 +29,7 @@ String mac2String(const uint8_t * mac) {
 
 Controller::Controller(String controller_name) {
     name = std::move(controller_name);
+    clientCount = 0;
 }
 Controller::Controller() : Controller(default_name){
 }
@@ -51,24 +52,29 @@ void Controller::addToQueue(const uint8_t* mac, clientMessage newMessage) {
 void Controller::OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
     clientMessage incomingMessage = {};
     memcpy(&incomingMessage, incomingData, sizeof(incomingMessage));
-    // as parallel RTOS function??
     addToQueue(mac, incomingMessage);
+}
 
-    /*
-    // put this into main as reaction to type : introduction
-    esp_now_peer_info_t client = {};
-    client.channel = 1;
-    client.encrypt = 0;
-    for (int i = 0; i < 6; ++i) {
-        client.peer_addr[i] = (uint8_t) mac[i];
+bool Controller::pairWithClient(const String &sender) {
+    esp_now_peer_info_t esp_now_client = {};
+    esp_now_client.channel = 1;
+    esp_now_client.encrypt = 0;
+    int mac[6];
+    if (6 == sscanf(sender.c_str(), "%x:%x:%x:%x:%x:%x%c", &mac[0], &mac[1], &mac[2], &mac[3], &mac[4],
+                    &mac[5])) {
+        for (int i = 0; i < 6; ++i) {
+            esp_now_client.peer_addr[i] = (uint8_t) mac[i];
+        }
+        esp_err_t addStatus = esp_now_add_peer(&esp_now_client);
+        if (addStatus == ESP_OK) {
+            ESP_LOGI(TAG, "Pair success");
+            return true;
+        } else {
+            ESP_LOGI(TAG, "Pair fail");
+            return false;
+        }
     }
-    esp_err_t addStatus = esp_now_add_peer(&client);
-    if (addStatus == ESP_OK) {
-        ESP_LOGI(TAG, "Pair success");
-    } else {
-        ESP_LOGI(TAG, "Pair fail");
-    }
-     */
+    return false;
 }
 
 void Controller::readFromQueue(void * parameters) {
@@ -78,6 +84,10 @@ void Controller::readFromQueue(void * parameters) {
             String reportJson;
             serializeJson(doc, reportJson);
             ESP_LOGI(TAG, "From Queue: %s", reportJson.c_str());
+            if (doc["action"] == "handshake") {
+                if(pairWithClient(doc["sender"])) {
+                    //clientList[clientCount++] = { doc["sender"], doc["type"] };
+                }
             }
         }
     }
