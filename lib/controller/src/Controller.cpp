@@ -11,36 +11,41 @@
 
 static const char* TAG = "Controller";
 #define CHANNEL 1
+static const int msg_queue_len = 5;
+QueueHandle_t msg_queue;
 
 Controller::Controller(String controller_name) {
     name = std::move(controller_name);
+    msg_queue = xQueueCreate(msg_queue_len, sizeof(StaticJsonDocument<1024>));
 }
-Controller::Controller() {
-    name = default_name;
+Controller::Controller() : Controller(default_name){
 }
 
 String Controller::getMacAddress() {
     return macAddress;
 }
 
-void Controller::OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
-    StaticJsonDocument<400> doc;
-    message incomingMessage;
-    memcpy(&incomingMessage, incomingData, sizeof(incomingMessage));
-    String jsonData = String(incomingMessage.content);
-    ESP_LOGI(TAG, "Got message: %s", incomingMessage.content);
-    DeserializationError error = deserializeJson(doc, jsonData);
+void Controller::addToQueue(const uint8_t* mac, clientMessage newMessage) {
+    StaticJsonDocument<1024> doc;
+    ESP_LOGI(TAG, "Got message: %s", newMessage.content);
+    DeserializationError error = deserializeJson(doc, newMessage.content);
 
     if (!error) {
-        const char* type = doc["type"];
-        ESP_LOGI(TAG, "Got message: %s", type);
-        const char* action = doc["action"];
-        ESP_LOGI(TAG, "Got message: %s", action);
+        doc["sender"] = (char*) mac;
+        xQueueSend(msg_queue, (void *)&doc, 10);
     } else {
-        Serial.print(F("deserializeJson() failed: "));  //Just in case of an ERROR of ArduinoJSon
-        Serial.println(error.f_str());
+        ESP_LOGE(TAG, "deserializeJson() failed: %s", error.c_str());
     }
+}
 
+void Controller::OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
+    clientMessage incomingMessage = {};
+    memcpy(&incomingMessage, incomingData, sizeof(incomingMessage));
+    // as parallel RTOS function??
+    addToQueue(mac, incomingMessage);
+
+    /*
+    // put this into main as reaction to type : introduction
     esp_now_peer_info_t client = {};
     client.channel = 1;
     client.encrypt = 0;
@@ -53,6 +58,7 @@ void Controller::OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, in
     } else {
         ESP_LOGI(TAG, "Pair fail");
     }
+     */
 }
 
 String Controller::start() {

@@ -10,7 +10,7 @@
 #include <utility>
 #include <esp_now.h>
 
-struct message {
+struct clientMessage {
     char content[64];
 };
 

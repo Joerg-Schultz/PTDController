@@ -34,7 +34,7 @@ String ClientReceiver::start() {
 }
 
 bool ClientReceiver::sendToController(char jsonString[64]) {
-    message myMessage = {};
+    clientMessage myMessage = {};
     memcpy(&myMessage.content, jsonString, sizeof(myMessage.content));
     esp_err_t result = esp_now_send(controller.peer_addr, (uint8_t *) &myMessage, sizeof(myMessage) + 2);  //Sending "jsondata"
     ESP_LOGI(TAG, "Send content: %s", myMessage.content);
@@ -42,7 +42,6 @@ bool ClientReceiver::sendToController(char jsonString[64]) {
 }
 
 void ClientReceiver::introduceToController() {
-    // TODO on the controller, add the Client as peer
     StaticJsonDocument<400> doc;
     doc["action"] = "intro"; // TODO use Enum type.
     doc["type"] = type;
