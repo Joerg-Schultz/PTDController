@@ -6,7 +6,7 @@ PTDdevice treater = {"", "PTDTreater"};
 
 void setup() {
     Serial.begin(115200);
-    //startDevice(treater)
+    startDevice(&treater);
 }
 
 void loop() {
