@@ -59,12 +59,16 @@ void pairWithClient(void * parameters) {
                 for (int i = 0; i < 6; ++i) {
                     esp_now_client.peer_addr[i] = (uint8_t) mac[i];
                 }
+                if (esp_now_is_peer_exist(esp_now_client.peer_addr)) {
+                    ESP_LOGI(TAG, "Device %s already paired", sender.c_str());
+                    continue;
+                }
                 esp_err_t addStatus = esp_now_add_peer(&esp_now_client);
                 if (addStatus == ESP_OK) {
-                    ESP_LOGI(TAG, "Pair success");
+                    ESP_LOGI(TAG, "Pair with %s success", sender.c_str());
                     clientList.push_back({doc["sender"], doc["type"]});
                 } else {
-                    ESP_LOGI(TAG, "Pair fail");
+                    ESP_LOGI(TAG, "Pair with %s failed", sender.c_str());
                 }
             }
         }
