@@ -33,7 +33,7 @@ void setup() {
     Serial.begin(115200);
     SerialBT.begin(controller.type);
 
-    startController();
+    startController(&controller);
 
 }
 

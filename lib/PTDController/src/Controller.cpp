@@ -17,8 +17,6 @@ QueueHandle_t BTOutQueue = xQueueCreate(msg_queue_len, sizeof(StaticJsonDocument
 QueueHandle_t pairingQueue = xQueueCreate(msg_queue_len, sizeof(StaticJsonDocument<jsonDocumentSize>));
 
 static const char* TAG = "Controller";
-
-static PTDdevice controller = {"", "PTDController"};
 static std::vector<PTDdevice> clientList = {};
 
 static void addToDeviceInQueue(const uint8_t* mac, clientMessage newMessage) {
@@ -75,12 +73,12 @@ void pairWithClient(void * parameters) {
     }
 }
 
-void startController() {
+void startController(PTDdevice * controller) {
     WiFi.mode(WIFI_MODE_AP);
     esp_wifi_set_protocol(WIFI_IF_AP, WIFI_PROTOCOL_LR);
 
-    controller.macAddress = WiFi.macAddress();
-    String SSID = controller.type + "_" + controller.macAddress;
+    controller->macAddress = WiFi.macAddress();
+    String SSID = controller->type + "_" + controller->macAddress;
 
     bool wifiResult = WiFi.softAP(SSID.c_str(), "Slave_Password", CHANNEL, 0);
     String wifiMessage = !wifiResult ?

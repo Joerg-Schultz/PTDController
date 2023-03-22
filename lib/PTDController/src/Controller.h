@@ -5,9 +5,10 @@
 #ifndef PTDCONTROLLER_CONTROLLER_H
 #define PTDCONTROLLER_CONTROLLER_H
 #include "ArduinoJson.h"
+#include "Shared.h"
 const int jsonDocumentSize = 512;
 
-void startController();
+void startController(PTDdevice * controller);
 void readFromDeviceInQueue(void * parameters);
 
 #endif //PTDCONTROLLER_CONTROLLER_H
