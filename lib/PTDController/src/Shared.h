@@ -6,6 +6,7 @@
 #define PTDCONTROLLER_SHARED_H
 
 #define CHANNEL 1
+#define ENCRYPT false
 
 struct clientMessage {
     char content[64];
