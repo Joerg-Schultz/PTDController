@@ -36,18 +36,13 @@ static void processSendQueue(void* parameters) {
     }
 }
 
-static void processReceiveQueue(void* parameters) {
-    while (1) {
-
-    }
-}
-
 static bool introduceToController(PTDdevice* device) {
     static StaticJsonDocument<jsonDocumentSize> doc; //static to keep it existing after function deceases
     doc["action"] = "handshake"; // TODO use Enum type.
     doc["type"] = device->type;
     return sendToController(doc);
 }
+
 bool sendToController(JsonDocument& doc) {
     if( xQueueSend(sendQueue, (void *)&doc, 10) == pdTRUE) {
         ESP_LOGI(TAG, "submitted doc to queue");
@@ -56,6 +51,26 @@ bool sendToController(JsonDocument& doc) {
         ESP_LOGI(TAG, "failed to submit doc to queue");
         return false;
     }
+}
+
+static void addToReceiveQueue(clientMessage newMessage) {
+    StaticJsonDocument<jsonDocumentSize> doc;
+    DeserializationError error = deserializeJson(doc, newMessage.content);
+    if (!error) {
+        if( xQueueSend(receiveQueue, (void *)&doc, 10)) {
+            ESP_LOGI(TAG, "Send successful");
+        } else {
+            ESP_LOGI(TAG, "Send failed");
+        }
+    } else {
+        ESP_LOGE(TAG, "deserializeJson() failed: %s", error.c_str());
+    }
+}
+
+static void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len) {
+    clientMessage incomingMessage = {};
+    memcpy(&incomingMessage, incomingData, sizeof(incomingMessage));
+    addToReceiveQueue(incomingMessage);
 }
 
 bool startDevice(PTDdevice* device) {
@@ -67,6 +82,7 @@ bool startDevice(PTDdevice* device) {
         ESP_LOGI(TAG,"ESPNow Init Failed");
         return false;
     }
+    esp_now_register_recv_cb(&OnDataRecv);
 
     int16_t scanResults = WiFi.scanNetworks();
     if (scanResults == 0) {

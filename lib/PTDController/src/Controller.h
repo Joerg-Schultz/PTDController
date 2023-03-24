@@ -6,9 +6,10 @@
 #define PTDCONTROLLER_CONTROLLER_H
 #include "ArduinoJson.h"
 #include "Shared.h"
-const int jsonDocumentSize = 132;
+const int jsonDocumentSize = 64;
 
 void startController(PTDdevice * controller);
-void readFromDeviceInQueue(void * parameters);
-
+void processDeviceReceiveQueue(void * parameters);
+void sendToDeviceViaType(const String& type, const StaticJsonDocument<jsonDocumentSize>& document);
+bool sendToDeviceViaMac(const String& mac, StaticJsonDocument<jsonDocumentSize> document);
 #endif //PTDCONTROLLER_CONTROLLER_H
