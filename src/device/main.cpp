@@ -35,6 +35,6 @@ void loop() {
     delay(3000);
     report["action"] = "data";
     report["measurement"] = sniffing ? "Sniffing" : "Not sniffing";
-    //sendToController(report);
+    sendToController(report);
     sniffing = !sniffing;
 }
