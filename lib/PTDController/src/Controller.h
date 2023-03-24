@@ -10,6 +10,6 @@ const int jsonDocumentSize = 64;
 
 void startController(PTDdevice * controller);
 void processDeviceReceiveQueue(void * parameters);
-void sendToDeviceViaType(const String& type, const StaticJsonDocument<jsonDocumentSize>& document);
-bool sendToDeviceViaMac(const String& mac, StaticJsonDocument<jsonDocumentSize> document);
+void sendToDeviceViaType(const String& type, StaticJsonDocument<jsonDocumentSize>* document);
+bool sendToDeviceViaMac(const String& mac, StaticJsonDocument<jsonDocumentSize>* document);
 #endif //PTDCONTROLLER_CONTROLLER_H

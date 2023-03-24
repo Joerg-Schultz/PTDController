@@ -34,7 +34,7 @@ void processDeviceReceiveQueue(void * parameters) {
                 continue;
             }
             if(received["action"] == "treat") {
-                ESP_LOGI(TAG, "Treating was a ", (received["report"] == "success" ? "Success" : "Fail"));
+                ESP_LOGI(TAG, "Treating was a %s", (received["report"] == "success") ? "Success" : "Fail");
                 continue;
             }
         }
@@ -56,6 +56,6 @@ void loop() {
     if (!deviceList.empty()) {
         action["action"] = "treat";
         ESP_LOGI(TAG, "Sending treat");
-        sendToDeviceViaType("PTDTreater", action);
+        sendToDeviceViaType("PTDTreater", &action);
     }
 }
