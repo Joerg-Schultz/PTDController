@@ -9,6 +9,12 @@ void setup() {
     startDevice(&treater);
 }
 
+static StaticJsonDocument<jsonDocumentSize> report;
+bool sniffing = false;
 void loop() {
-// write your code here
+    delay(3000);
+    report["action"] = "data";
+    report["measurement"] = sniffing ? "Sniffing" : "Not sniffing";
+    sendToController(report);
+    sniffing = !sniffing;
 }

@@ -46,12 +46,14 @@ static bool introduceToController(PTDdevice* device) {
     static StaticJsonDocument<jsonDocumentSize> doc; //static to keep it existing after function deceases
     doc["action"] = "handshake"; // TODO use Enum type.
     doc["type"] = device->type;
-
+    return sendToController(doc);
+}
+bool sendToController(JsonDocument& doc) {
     if( xQueueSend(sendQueue, (void *)&doc, 10) == pdTRUE) {
-        ESP_LOGI(TAG, "submitted handshake to queue");
+        ESP_LOGI(TAG, "submitted doc to queue");
         return true;
     } else {
-        ESP_LOGI(TAG, "failed to submit handshake to queue");
+        ESP_LOGI(TAG, "failed to submit doc to queue");
         return false;
     }
 }
