@@ -42,29 +42,18 @@ static void processReceiveQueue(void* parameters) {
     }
 }
 
-
-static bool sendToController(char jsonString[jsonDocumentSize]) {
-    clientMessage myMessage = {};
-    memcpy(&myMessage.content, jsonString, sizeof(myMessage.content));
-    for (esp_now_peer_info_t controller : controllerList) {
-        esp_err_t result = esp_now_send(controller.peer_addr, (uint8_t *) &myMessage, sizeof(myMessage) + 2);  //Sending "jsondata"
-        ESP_LOGI(TAG, "Send content: %s", myMessage.content);
-        if (result != ESP_OK) return false;
-    }
-    return true;
-}
-
-static StaticJsonDocument<jsonDocumentSize> doc; //TODO having this here is ugly. can I get it into function? Without nulling it when leaving function??
 static bool introduceToController(PTDdevice* device) {
+    static StaticJsonDocument<jsonDocumentSize> doc; //static to keep it existing after function deceases
     doc["action"] = "handshake"; // TODO use Enum type.
     doc["type"] = device->type;
 
     if( xQueueSend(sendQueue, (void *)&doc, 10) == pdTRUE) {
         ESP_LOGI(TAG, "submitted handshake to queue");
+        return true;
     } else {
         ESP_LOGI(TAG, "failed to submit handshake to queue");
+        return false;
     }
-    return true;
 }
 
 bool startDevice(PTDdevice* device) {
@@ -83,24 +72,21 @@ bool startDevice(PTDdevice* device) {
         return false;
     }
     ESP_LOGI(TAG,"Found %d devices", scanResults);
-
-   /* xTaskCreate(processReceiveQueue,
+    BaseType_t createReceive = xTaskCreate(processReceiveQueue,
                 "Reading",
                 2048,
                 NULL,
                 0,
-                NULL); */
+                NULL);
+    ESP_LOGI(TAG, "send Task %s", (createReceive == pdPASS) ? "success" : "fail");
+
     BaseType_t createSend = xTaskCreate(processSendQueue,
                                         "Sending",
                                         4096,
                                         NULL,
                                         0,
                                         NULL);
-    if(createSend == pdPASS) {
-        ESP_LOGI(TAG, "send Task created");
-    } else {
-        ESP_LOGI(TAG, "send Task failed");
-    }
+    ESP_LOGI(TAG, "send Task %s", (createSend == pdPASS) ? "success" : "fail");
 
     for (int i = 0; i < scanResults; ++i) {
         String SSID = WiFi.SSID(i);
