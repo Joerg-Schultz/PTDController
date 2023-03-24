@@ -4,7 +4,7 @@
 #include "Shared.h"
 
 static const char* TAG = "Main";
-extern QueueHandle_t deviceInQueue;
+extern QueueHandle_t deviceReceiveQueue;
 extern QueueHandle_t pairingQueue;
 
 PTDdevice controller = {"", "PTDController"};
@@ -14,7 +14,7 @@ BluetoothSerial SerialBT;
 void readFromDeviceInQueue(void * parameters) {
     StaticJsonDocument<jsonDocumentSize> doc;
     while(1) {
-        if (xQueueReceive(deviceInQueue, (void *)&doc, 0) == pdTRUE) {
+        if (xQueueReceive(deviceReceiveQueue, (void *)&doc, 0) == pdTRUE) {
             if (doc["action"] == "handshake") {
                 String bla = doc["type"];
                 ESP_LOGI(TAG, "shaking with type %s", bla.c_str());

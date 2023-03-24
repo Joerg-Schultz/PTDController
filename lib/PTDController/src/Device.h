@@ -6,6 +6,7 @@
 #define PTDCONTROLLER_DEVICE_H
 #include "ArduinoJson.h"
 #include "Shared.h"
+const int jsonDocumentSize = 64;
 
 bool startDevice(PTDdevice * device);
 #endif //PTDCONTROLLER_DEVICE_H

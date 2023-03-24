@@ -10,11 +10,40 @@
 #include "Device.h"
 #include "Shared.h"
 
+static const int msg_queue_len = 5;
+QueueHandle_t receiveQueue = xQueueCreate(msg_queue_len, sizeof(StaticJsonDocument<jsonDocumentSize>));
+QueueHandle_t sendQueue = xQueueCreate(msg_queue_len, sizeof(StaticJsonDocument<jsonDocumentSize>));
+
+
 static const char* TAG = "Device";
 
 static std::vector<esp_now_peer_info_t> controllerList = {};
 
-static bool sendToController(char jsonString[64]) {
+
+static void processSendQueue(void* parameters) {
+    StaticJsonDocument<jsonDocumentSize> doc;
+    while (1) {
+        if (xQueueReceive(sendQueue, (void *) &doc, 0) == pdTRUE) {
+            clientMessage myMessage = {};
+            serializeJson(doc,myMessage.content);
+            for(esp_now_peer_info_t controller : controllerList) {
+                String controllerMac = mac2String(controller.peer_addr);
+                ESP_LOGI(TAG, "Sending %s to %s", myMessage.content, controllerMac.c_str());
+                esp_err_t result = esp_now_send(controller.peer_addr, (uint8_t *) &myMessage, sizeof(myMessage) + 2);  //Sending "jsondata"
+                ESP_LOGI(TAG, "Sending: %s", (result == ESP_OK) ? "Success" : "Failed");
+            }
+        }
+    }
+}
+
+static void processReceiveQueue(void* parameters) {
+    while (1) {
+
+    }
+}
+
+
+static bool sendToController(char jsonString[jsonDocumentSize]) {
     clientMessage myMessage = {};
     memcpy(&myMessage.content, jsonString, sizeof(myMessage.content));
     for (esp_now_peer_info_t controller : controllerList) {
@@ -25,14 +54,17 @@ static bool sendToController(char jsonString[64]) {
     return true;
 }
 
+static StaticJsonDocument<jsonDocumentSize> doc; //TODO having this here is ugly. can I get it into function? Without nulling it when leaving function??
 static bool introduceToController(PTDdevice* device) {
-    StaticJsonDocument<400> doc;
     doc["action"] = "handshake"; // TODO use Enum type.
     doc["type"] = device->type;
-    char jsonData [64] = ""; // TODO #define the length of content
-    serializeJson(doc, jsonData);
-    ESP_LOGI(TAG, "%s", jsonData);
-    return sendToController(jsonData);
+
+    if( xQueueSend(sendQueue, (void *)&doc, 10) == pdTRUE) {
+        ESP_LOGI(TAG, "submitted handshake to queue");
+    } else {
+        ESP_LOGI(TAG, "failed to submit handshake to queue");
+    }
+    return true;
 }
 
 bool startDevice(PTDdevice* device) {
@@ -51,6 +83,24 @@ bool startDevice(PTDdevice* device) {
         return false;
     }
     ESP_LOGI(TAG,"Found %d devices", scanResults);
+
+   /* xTaskCreate(processReceiveQueue,
+                "Reading",
+                2048,
+                NULL,
+                0,
+                NULL); */
+    BaseType_t createSend = xTaskCreate(processSendQueue,
+                                        "Sending",
+                                        4096,
+                                        NULL,
+                                        0,
+                                        NULL);
+    if(createSend == pdPASS) {
+        ESP_LOGI(TAG, "send Task created");
+    } else {
+        ESP_LOGI(TAG, "send Task failed");
+    }
 
     for (int i = 0; i < scanResults; ++i) {
         String SSID = WiFi.SSID(i);
@@ -78,7 +128,6 @@ bool startDevice(PTDdevice* device) {
             }
         }
     }
+
     return true;
-
-
 }

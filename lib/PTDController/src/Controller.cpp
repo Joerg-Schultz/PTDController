@@ -10,10 +10,10 @@
 #include "Controller.h"
 
 static const int msg_queue_len = 5;
-QueueHandle_t deviceInQueue = xQueueCreate(msg_queue_len, sizeof(StaticJsonDocument<jsonDocumentSize>));
-QueueHandle_t deviceOutQueue = xQueueCreate(msg_queue_len, sizeof(StaticJsonDocument<jsonDocumentSize>));
-QueueHandle_t BTInQueue = xQueueCreate(msg_queue_len, sizeof(StaticJsonDocument<jsonDocumentSize>));
-QueueHandle_t BTOutQueue = xQueueCreate(msg_queue_len, sizeof(StaticJsonDocument<jsonDocumentSize>));
+QueueHandle_t deviceReceiveQueue = xQueueCreate(msg_queue_len, sizeof(StaticJsonDocument<jsonDocumentSize>));
+QueueHandle_t deviceSendQueue = xQueueCreate(msg_queue_len, sizeof(StaticJsonDocument<jsonDocumentSize>));
+QueueHandle_t BTReceiveQueue = xQueueCreate(msg_queue_len, sizeof(StaticJsonDocument<jsonDocumentSize>));
+QueueHandle_t BTSendQueue = xQueueCreate(msg_queue_len, sizeof(StaticJsonDocument<jsonDocumentSize>));
 QueueHandle_t pairingQueue = xQueueCreate(msg_queue_len, sizeof(StaticJsonDocument<jsonDocumentSize>));
 
 static const char* TAG = "Controller";
@@ -26,7 +26,7 @@ static void addToDeviceInQueue(const uint8_t* mac, clientMessage newMessage) {
         doc["sender"] = mac2String(mac);
         String bla = doc["action"];
         ESP_LOGI(TAG, "sending to deviceInQueue %s", bla.c_str());
-        if( xQueueSend(deviceInQueue, (void *)&doc, 10)) {
+        if( xQueueSend(deviceReceiveQueue, (void *)&doc, 10)) {
             ESP_LOGI(TAG, "Send successful");
         } else {
             ESP_LOGI(TAG, "Send failed");
