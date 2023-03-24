@@ -21,7 +21,10 @@ void processDeviceReceiveQueue(void * parameters) {
             if (received["action"] == "handshake") {
                 static StaticJsonDocument<jsonDocumentSize> pairWithClient;
                 String sender = received["sender"];
-                ESP_LOGI(TAG, "shaking with mac %s", sender.c_str());
+                String type = received["type"];
+                pairWithClient["sender"] = sender;
+                pairWithClient["type"] = type;
+                ESP_LOGI(TAG, "shaking with mac %s of type %s", sender.c_str(), type.c_str());
                 xQueueSend(pairingQueue, (void *)&pairWithClient, 10);
                 continue;
             }

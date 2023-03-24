@@ -53,6 +53,8 @@ void pairWithClient(void * parameters) {
             esp_now_client.encrypt = ENCRYPT;
             int mac[6];
             String sender = pairingJson["sender"];
+            String deviceType = pairingJson["type"];
+            ESP_LOGI(TAG, "Pairing with sender %sof type %s", sender.c_str(), deviceType.c_str());
             if (6 == sscanf(sender.c_str(), "%x:%x:%x:%x:%x:%x%c", &mac[0], &mac[1], &mac[2], &mac[3], &mac[4],
                             &mac[5])) {
                 for (int i = 0; i < 6; ++i) {
