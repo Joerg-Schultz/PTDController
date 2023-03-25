@@ -14,28 +14,34 @@ PTDdevice controller = {"", "PTDController"};
 
 BluetoothSerial SerialBT;
 
-void processDeviceReceiveQueue(void * parameters) {
-    static StaticJsonDocument<jsonDocumentSize> received;
-    while(1) {
-        if (xQueueReceive(deviceReceiveQueue, (void *)&received, 0) == pdTRUE) {
-            if (received["action"] == "handshake") {
-                static StaticJsonDocument<jsonDocumentSize> pairWithClient;
-                String sender = received["sender"];
-                String type = received["type"];
-                pairWithClient["sender"] = sender;
-                pairWithClient["type"] = type;
-                ESP_LOGI(TAG, "shaking with mac %s of type %s", sender.c_str(), type.c_str());
-                xQueueSend(pairingQueue, (void *)&pairWithClient, 10);
-                continue;
-            }
-            if (received["action"] == "data") {
-                String value = received["measurement"];
-                ESP_LOGI(TAG, "Got Measurement: %s", value.c_str());
-                continue;
-            }
-            if(received["action"] == "treat") {
-                ESP_LOGI(TAG, "Treating was a %s", (received["report"] == "success") ? "Success" : "Fail");
-                continue;
+void processDeviceReceiveQueue(void *parameters) {
+    while (1) {
+        if (uxQueueMessagesWaiting(deviceReceiveQueue) > 0) {
+            StaticJsonDocument<jsonDocumentSize> *received;
+
+            if (xQueueReceive(deviceReceiveQueue, &received, 0) == pdTRUE) {
+                if ((*received)["action"] == "handshake") {
+                    static StaticJsonDocument<jsonDocumentSize> pairWithClient;
+                    String sender = (*received)["sender"];
+                    String type = (*received)["type"];
+                    pairWithClient["sender"] = sender;
+                    pairWithClient["type"] = type;
+                    ESP_LOGI(TAG, "shaking with mac %s of type %s", sender.c_str(), type.c_str());
+                    xQueueSend(pairingQueue, (void *) &pairWithClient, 10);
+                    delete received;
+                    continue;
+                }
+                if ((*received)["action"] == "data") {
+                    String value = (*received)["measurement"];
+                    ESP_LOGI(TAG, "Got Measurement: %s", value.c_str());
+                    delete received;
+                    continue;
+                }
+                if ((*received)["action"] == "treat") {
+                    ESP_LOGI(TAG, "Treating was a %s", ((*received)["report"] == "success") ? "Success" : "Fail");
+                    delete received;
+                    continue;
+                }
             }
         }
     }
@@ -55,7 +61,7 @@ void loop() {
     static StaticJsonDocument<jsonDocumentSize> action;
     if (!deviceList.empty()) {
         action["action"] = "treat";
-        ESP_LOGI(TAG, "Sending treat");
-        sendToDeviceViaType("PTDTreater", &action);
+        //ESP_LOGI(TAG, "Sending treat");
+        //sendToDeviceViaType("PTDTreater", &action);
     }
 }

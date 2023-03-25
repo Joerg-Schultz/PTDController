@@ -20,15 +20,15 @@ static const char* TAG = "Controller";
 std::vector<PTDdevice> deviceList = {};
 
 static void addToDeviceReceiveQueue(const uint8_t* mac, clientMessage newMessage) {
-    static StaticJsonDocument<jsonDocumentSize> doc;
-    DeserializationError error = deserializeJson(doc, newMessage.content);
+    auto* doc = new StaticJsonDocument<jsonDocumentSize>();
+    DeserializationError error = deserializeJson((*doc), newMessage.content);
     if (!error) {
         String macTest = mac2String(mac);
-        doc["sender"] = macTest.c_str();
-        String action = doc["action"];
-        String sender = doc["sender"];
-        ESP_LOGI(TAG, "sending to deviceInQueue %s from %s", action.c_str(), sender.c_str());
-        if( xQueueSend(deviceReceiveQueue, (void *)&doc, 10)) {
+        (*doc)["sender"] = macTest.c_str();
+        String action = (*doc)["action"];
+        String sender = (*doc)["sender"];
+        ESP_LOGI(TAG, "sending to deviceReceiveQueue %s from %s", action.c_str(), sender.c_str());
+        if( xQueueSend(deviceReceiveQueue, &doc, 10)) {
             ESP_LOGI(TAG, "Send successful");
         } else {
             ESP_LOGI(TAG, "Send failed");
