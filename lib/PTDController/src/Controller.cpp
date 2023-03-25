@@ -55,26 +55,28 @@ void pairWithClient(void *parameters) {
                 esp_now_client.encrypt = ENCRYPT;
                 //esp_now_client.ifidx = ESP_IF_WIFI_AP;
                 esp_now_client.ifidx = static_cast<wifi_interface_t>(1);
-                int mac[6];
                 String sender = (*pairingJson)["sender"];
                 String deviceType = (*pairingJson)["type"];
                 ESP_LOGI(TAG, "Pairing with sender %sof type %s", sender.c_str(), deviceType.c_str());
+                string2Mac(sender, esp_now_client.peer_addr);
+                /*
                 if (6 == sscanf(sender.c_str(), "%x:%x:%x:%x:%x:%x%c", &mac[0], &mac[1], &mac[2], &mac[3], &mac[4],
                                 &mac[5])) {
                     for (int i = 0; i < 6; ++i) {
                         esp_now_client.peer_addr[i] = (uint8_t) mac[i];
                     }
-                    if (esp_now_is_peer_exist(esp_now_client.peer_addr)) {
-                        ESP_LOGI(TAG, "Device %s already paired", sender.c_str());
-                        continue;
-                    }
-                    esp_err_t addStatus = esp_now_add_peer(&esp_now_client);
-                    if (addStatus == ESP_OK) {
-                        ESP_LOGI(TAG, "Pair with %s success", sender.c_str());
-                        deviceList.push_back({sender, deviceType});
-                    } else {
-                        ESP_LOGI(TAG, "Pair with %s failed", sender.c_str());
-                    }
+                }
+                 */
+                if (esp_now_is_peer_exist(esp_now_client.peer_addr)) {
+                    ESP_LOGI(TAG, "Device %s already paired", sender.c_str());
+                    continue;
+                }
+                esp_err_t addStatus = esp_now_add_peer(&esp_now_client);
+                if (addStatus == ESP_OK) {
+                    ESP_LOGI(TAG, "Pair with %s success", sender.c_str());
+                    deviceList.push_back({sender, deviceType});
+                } else {
+                    ESP_LOGI(TAG, "Pair with %s failed", sender.c_str());
                 }
             }
             delete pairingJson;
@@ -91,15 +93,8 @@ static void processDeviceSendQueue(void* parameters) {
                 String targetMacString = (*sendJson)["target"];
                 ESP_LOGI(TAG, "Sending to target: %s", targetMacString.c_str());
                 (*sendJson).remove("target");
-                int mac[6];
                 uint8_t peer_addr[6];
-                if (6 ==
-                    sscanf(targetMacString.c_str(), "%x:%x:%x:%x:%x:%x%c", &mac[0], &mac[1], &mac[2], &mac[3], &mac[4],
-                           &mac[5])) {
-                    for (int ii = 0; ii < 6; ++ii) {
-                        peer_addr[ii] = (uint8_t) mac[ii];
-                    }
-                }
+                string2Mac(targetMacString, peer_addr);
                 clientMessage myMessage = {};
                 ESP_LOGI(TAG, "Processing Sending task");
                 serializeJson((*sendJson), myMessage.content);
