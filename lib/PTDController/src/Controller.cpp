@@ -44,36 +44,40 @@ static void OnDataRecv(const uint8_t * mac, const uint8_t *incomingData, int len
     addToDeviceReceiveQueue(mac, incomingMessage);
 }
 
-void pairWithClient(void * parameters) {
-    StaticJsonDocument<jsonDocumentSize> pairingJson;
+void pairWithClient(void *parameters) {
     while (1) {
-        if (xQueueReceive(pairingQueue, (void *) &pairingJson, 0) == pdTRUE) {
-            esp_now_peer_info_t esp_now_client = {};
-            esp_now_client.channel = CHANNEL;
-            esp_now_client.encrypt = ENCRYPT;
-            //esp_now_client.ifidx = ESP_IF_WIFI_AP;
-            esp_now_client.ifidx = static_cast<wifi_interface_t>(1);
-            int mac[6];
-            String sender = pairingJson["sender"];
-            String deviceType = pairingJson["type"];
-            ESP_LOGI(TAG, "Pairing with sender %sof type %s", sender.c_str(), deviceType.c_str());
-            if (6 == sscanf(sender.c_str(), "%x:%x:%x:%x:%x:%x%c", &mac[0], &mac[1], &mac[2], &mac[3], &mac[4],
-                            &mac[5])) {
-                for (int i = 0; i < 6; ++i) {
-                    esp_now_client.peer_addr[i] = (uint8_t) mac[i];
-                }
-                if (esp_now_is_peer_exist(esp_now_client.peer_addr)) {
-                    ESP_LOGI(TAG, "Device %s already paired", sender.c_str());
-                    continue;
-                }
-                esp_err_t addStatus = esp_now_add_peer(&esp_now_client);
-                if (addStatus == ESP_OK) {
-                    ESP_LOGI(TAG, "Pair with %s success", sender.c_str());
-                    deviceList.push_back({pairingJson["sender"], pairingJson["type"]});
-                } else {
-                    ESP_LOGI(TAG, "Pair with %s failed", sender.c_str());
+        if (uxQueueMessagesWaiting(pairingQueue) > 0) {
+            StaticJsonDocument<jsonDocumentSize> *pairingJson;
+
+            if (xQueueReceive(pairingQueue, &pairingJson, 0) == pdTRUE) {
+                esp_now_peer_info_t esp_now_client = {};
+                esp_now_client.channel = CHANNEL;
+                esp_now_client.encrypt = ENCRYPT;
+                //esp_now_client.ifidx = ESP_IF_WIFI_AP;
+                esp_now_client.ifidx = static_cast<wifi_interface_t>(1);
+                int mac[6];
+                String sender = (*pairingJson)["sender"];
+                String deviceType = (*pairingJson)["type"];
+                ESP_LOGI(TAG, "Pairing with sender %sof type %s", sender.c_str(), deviceType.c_str());
+                if (6 == sscanf(sender.c_str(), "%x:%x:%x:%x:%x:%x%c", &mac[0], &mac[1], &mac[2], &mac[3], &mac[4],
+                                &mac[5])) {
+                    for (int i = 0; i < 6; ++i) {
+                        esp_now_client.peer_addr[i] = (uint8_t) mac[i];
+                    }
+                    if (esp_now_is_peer_exist(esp_now_client.peer_addr)) {
+                        ESP_LOGI(TAG, "Device %s already paired", sender.c_str());
+                        continue;
+                    }
+                    esp_err_t addStatus = esp_now_add_peer(&esp_now_client);
+                    if (addStatus == ESP_OK) {
+                        ESP_LOGI(TAG, "Pair with %s success", sender.c_str());
+                        deviceList.push_back({sender, deviceType});
+                    } else {
+                        ESP_LOGI(TAG, "Pair with %s failed", sender.c_str());
+                    }
                 }
             }
+            delete pairingJson;
         }
     }
 }

@@ -21,13 +21,13 @@ void processDeviceReceiveQueue(void *parameters) {
 
             if (xQueueReceive(deviceReceiveQueue, &received, 0) == pdTRUE) {
                 if ((*received)["action"] == "handshake") {
-                    static StaticJsonDocument<jsonDocumentSize> pairWithClient;
+                    auto* pairWithClient = new StaticJsonDocument<jsonDocumentSize>();
                     String sender = (*received)["sender"];
                     String type = (*received)["type"];
-                    pairWithClient["sender"] = sender;
-                    pairWithClient["type"] = type;
+                    (*pairWithClient)["sender"] = sender;
+                    (*pairWithClient)["type"] = type;
                     ESP_LOGI(TAG, "shaking with mac %s of type %s", sender.c_str(), type.c_str());
-                    xQueueSend(pairingQueue, (void *) &pairWithClient, 10);
+                    xQueueSend(pairingQueue, &pairWithClient, 10);
                     delete received;
                     continue;
                 }
