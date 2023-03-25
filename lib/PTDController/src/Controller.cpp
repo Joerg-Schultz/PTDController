@@ -83,28 +83,34 @@ void pairWithClient(void *parameters) {
 }
 
 static void processDeviceSendQueue(void* parameters) {
-    StaticJsonDocument<jsonDocumentSize> sendJson;
     while (1) {
-        if (xQueueReceive(deviceSendQueue, (void *) &sendJson, 0) == pdTRUE) {
-            String targetMacString = sendJson["target"];
-            ESP_LOGI(TAG, "Sending to target: %s", targetMacString.c_str());
-            sendJson.remove("target");
-            int mac[6];
-            uint8_t peer_addr[6];
-            if (6 == sscanf(targetMacString.c_str(), "%x:%x:%x:%x:%x:%x%c", &mac[0], &mac[1], &mac[2], &mac[3], &mac[4],
-                   &mac[5])) {
-                for (int ii = 0; ii < 6; ++ii) {
-                    peer_addr[ii] = (uint8_t) mac[ii];
+        if (uxQueueMessagesWaiting(deviceSendQueue) > 0) {
+            StaticJsonDocument<jsonDocumentSize> *sendJson;
+
+            if (xQueueReceive(deviceSendQueue, (void *) &sendJson, 0) == pdTRUE) {
+                String targetMacString = (*sendJson)["target"];
+                ESP_LOGI(TAG, "Sending to target: %s", targetMacString.c_str());
+                (*sendJson).remove("target");
+                int mac[6];
+                uint8_t peer_addr[6];
+                if (6 ==
+                    sscanf(targetMacString.c_str(), "%x:%x:%x:%x:%x:%x%c", &mac[0], &mac[1], &mac[2], &mac[3], &mac[4],
+                           &mac[5])) {
+                    for (int ii = 0; ii < 6; ++ii) {
+                        peer_addr[ii] = (uint8_t) mac[ii];
+                    }
                 }
+                clientMessage myMessage = {};
+                ESP_LOGI(TAG, "Processing Sending task");
+                serializeJson((*sendJson), myMessage.content);
+                ESP_LOGI(TAG, "Sending %s to %s", myMessage.content, targetMacString.c_str());
+                esp_err_t result = esp_now_send(peer_addr, (uint8_t *) &myMessage,
+                                                sizeof(myMessage) + 2);  //Sending "jsondata"
+                ESP_LOGI(TAG, "Sending: %s", (result == ESP_OK) ? "Success" : "Failed");
+                const char *error_name = esp_err_to_name(result);
+                ESP_LOGI(TAG, "Error Code: %s", error_name);
             }
-            clientMessage myMessage = {};
-            ESP_LOGI(TAG,"Processing Sending task");
-            serializeJson(sendJson,myMessage.content);
-            ESP_LOGI(TAG, "Sending %s to %s", myMessage.content, targetMacString.c_str());
-            esp_err_t result = esp_now_send(peer_addr, (uint8_t *) &myMessage, sizeof(myMessage) + 2);  //Sending "jsondata"
-            ESP_LOGI(TAG, "Sending: %s", (result == ESP_OK) ? "Success" : "Failed");
-            const char* error_name = esp_err_to_name(result);
-            ESP_LOGI(TAG, "Error Code: %s", error_name);
+            delete sendJson;
         }
     }
 }
@@ -164,7 +170,7 @@ bool sendToDeviceViaMac(const String& macAddress, StaticJsonDocument<jsonDocumen
     testDocument["action"] = "treat";
      */
     (*document)["target"] = macAddress;
-    if( xQueueSend(deviceSendQueue, (void *)document, 10) == pdTRUE) {
+    if( xQueueSend(deviceSendQueue, &document, 10) == pdTRUE) {
         ESP_LOGI(TAG, "submitted doc to queue");
         return true;
     } else {

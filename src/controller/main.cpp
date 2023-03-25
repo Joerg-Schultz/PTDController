@@ -58,10 +58,10 @@ void setup() {
 
 void loop() {
     delay(3000);
-    static StaticJsonDocument<jsonDocumentSize> action;
+    auto* action = new StaticJsonDocument<jsonDocumentSize>();
     if (!deviceList.empty()) {
-        action["action"] = "treat";
-        //ESP_LOGI(TAG, "Sending treat");
-        //sendToDeviceViaType("PTDTreater", &action);
+        (*action)["action"] = "treat";
+        ESP_LOGI(TAG, "Sending treat");
+        sendToDeviceViaType("PTDTreater", action);
     }
 }
