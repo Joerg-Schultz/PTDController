@@ -9,7 +9,7 @@
 const int jsonDocumentSize = 64;
 
 bool startDevice(PTDdevice * device);
-bool sendToController(JsonDocument& doc);
+bool sendToController(StaticJsonDocument<jsonDocumentSize>* doc);
 void processReceiveQueue(void * parameters);
 
 #endif //PTDCONTROLLER_DEVICE_H

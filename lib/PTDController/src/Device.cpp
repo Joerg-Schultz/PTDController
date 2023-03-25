@@ -21,30 +21,34 @@ static std::vector<esp_now_peer_info_t> controllerList = {};
 
 
 static void processSendQueue(void* parameters) {
-    StaticJsonDocument<jsonDocumentSize> doc;
     while (1) {
-        if (xQueueReceive(sendQueue, (void *) &doc, 0) == pdTRUE) {
-            clientMessage myMessage = {};
-            serializeJson(doc,myMessage.content);
-            for(esp_now_peer_info_t controller : controllerList) {
-                String controllerMac = mac2String(controller.peer_addr);
-                ESP_LOGI(TAG, "Sending %s to %s", myMessage.content, controllerMac.c_str());
-                esp_err_t result = esp_now_send(controller.peer_addr, (uint8_t *) &myMessage, sizeof(myMessage) + 2);  //Sending "jsondata"
-                ESP_LOGI(TAG, "Sending: %s", (result == ESP_OK) ? "Success" : "Failed");
+        if (uxQueueMessagesWaiting(sendQueue) > 0) {
+            StaticJsonDocument<jsonDocumentSize> *doc;
+
+            if (xQueueReceive(sendQueue, &doc, 0) == pdTRUE) {
+                clientMessage myMessage = {};
+                serializeJson((*doc), myMessage.content);
+                for (esp_now_peer_info_t controller: controllerList) {
+                    String controllerMac = mac2String(controller.peer_addr);
+                    ESP_LOGI(TAG, "Sending %s to %s", myMessage.content, controllerMac.c_str());
+                    esp_err_t result = esp_now_send(controller.peer_addr, (uint8_t *) &myMessage,
+                                                    sizeof(myMessage) + 2);  //Sending "jsondata"
+                    ESP_LOGI(TAG, "Sending: %s", (result == ESP_OK) ? "Success" : "Failed");
+                }
             }
+            delete doc;
         }
     }
 }
-
 static bool introduceToController(PTDdevice* device) {
-    static StaticJsonDocument<jsonDocumentSize> doc; //static to keep it existing after function deceases
-    doc["action"] = "handshake"; // TODO use Enum type.
-    doc["type"] = device->type;
+    auto* doc = new StaticJsonDocument<jsonDocumentSize>();
+    (*doc)["action"] = "handshake"; // TODO use Enum type.
+    (*doc)["type"] = device->type;
     return sendToController(doc);
 }
 
-bool sendToController(JsonDocument& doc) {
-    if( xQueueSend(sendQueue, (void *)&doc, 10) == pdTRUE) {
+bool sendToController(StaticJsonDocument<jsonDocumentSize>* doc) {
+    if( xQueueSend(sendQueue, &doc, 10) == pdTRUE) {
         ESP_LOGI(TAG, "submitted doc to queue");
         return true;
     } else {
@@ -54,10 +58,10 @@ bool sendToController(JsonDocument& doc) {
 }
 
 static void addToReceiveQueue(clientMessage newMessage) {
-    StaticJsonDocument<jsonDocumentSize> doc;
-    DeserializationError error = deserializeJson(doc, newMessage.content);
+    auto* doc = new StaticJsonDocument<jsonDocumentSize>();
+    DeserializationError error = deserializeJson((*doc), newMessage.content);
     if (!error) {
-        if( xQueueSend(receiveQueue, (void *)&doc, 10)) {
+        if( xQueueSend(receiveQueue, &doc, 10)) {
             ESP_LOGI(TAG, "Send successful");
         } else {
             ESP_LOGI(TAG, "Send failed");
