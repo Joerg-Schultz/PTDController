@@ -91,19 +91,18 @@ static void processDeviceSendQueue(void* parameters) {
 
             if (xQueueReceive(deviceSendQueue, (void *) &sendJson, 0) == pdTRUE) {
                 String targetMacString = (*sendJson)["target"];
-                ESP_LOGI(TAG, "Sending to target: %s", targetMacString.c_str());
                 (*sendJson).remove("target");
                 uint8_t peer_addr[6];
                 string2Mac(targetMacString, peer_addr);
                 clientMessage myMessage = {};
-                ESP_LOGI(TAG, "Processing Sending task");
                 serializeJson((*sendJson), myMessage.content);
-                ESP_LOGI(TAG, "Sending %s to %s", myMessage.content, targetMacString.c_str());
                 esp_err_t result = esp_now_send(peer_addr, (uint8_t *) &myMessage,
-                                                sizeof(myMessage) + 2);  //Sending "jsondata"
-                ESP_LOGI(TAG, "Sending: %s", (result == ESP_OK) ? "Success" : "Failed");
-                const char *error_name = esp_err_to_name(result);
-                ESP_LOGI(TAG, "Error Code: %s", error_name);
+                                                sizeof(myMessage) + 2);
+                if (result != ESP_OK) {
+                    ESP_LOGI(TAG, "Sending: %s to %s Failed", myMessage.content, targetMacString.c_str());
+                    const char *error_name = esp_err_to_name(result);
+                    ESP_LOGI(TAG, "Error Code: %s", error_name);
+                }
             }
             delete sendJson;
         }
@@ -159,14 +158,8 @@ void sendToDeviceViaType(const String& type, StaticJsonDocument<jsonDocumentSize
 }
 
 bool sendToDeviceViaMac(const String& macAddress, StaticJsonDocument<jsonDocumentSize> *document) {
-    /*
-    static StaticJsonDocument<jsonDocumentSize> testDocument;
-    testDocument["target"] = macAddress;
-    testDocument["action"] = "treat";
-     */
     (*document)["target"] = macAddress;
     if( xQueueSend(deviceSendQueue, &document, 10) == pdTRUE) {
-        ESP_LOGI(TAG, "submitted doc to queue");
         return true;
     } else {
         ESP_LOGI(TAG, "failed to submit doc to queue");
