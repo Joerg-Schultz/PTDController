@@ -24,11 +24,8 @@ static void addToDeviceReceiveQueue(const uint8_t *mac, clientMessage newMessage
     DeserializationError error = deserializeJson((*doc), newMessage.content);
     if (!error) {
         (*doc)["sender"] = mac2String(mac);
-        if( xQueueSend(deviceReceiveQueue, &doc, 10)) {
-            ESP_LOGI(TAG, "Send successful");
-        } else {
-            ESP_LOGI(TAG, "Send failed");
-        }
+        if( xQueueSend(deviceReceiveQueue, &doc, 10) != pdPASS)
+            ESP_LOGI(TAG, "Submitting to DeviceReceiveQueue failed.");
     } else {
         ESP_LOGE(TAG, "deserializeJson() failed: %s", error.c_str());
     }
@@ -55,14 +52,7 @@ void pairWithClient(void *parameters) {
                 String deviceType = (*pairingJson)["type"];
                 ESP_LOGI(TAG, "Pairing with sender %sof type %s", sender.c_str(), deviceType.c_str());
                 string2Mac(sender, esp_now_client.peer_addr);
-                /*
-                if (6 == sscanf(sender.c_str(), "%x:%x:%x:%x:%x:%x%c", &mac[0], &mac[1], &mac[2], &mac[3], &mac[4],
-                                &mac[5])) {
-                    for (int i = 0; i < 6; ++i) {
-                        esp_now_client.peer_addr[i] = (uint8_t) mac[i];
-                    }
-                }
-                 */
+
                 if (esp_now_is_peer_exist(esp_now_client.peer_addr)) {
                     ESP_LOGI(TAG, "Device %s already paired", sender.c_str());
                     continue;
@@ -147,18 +137,15 @@ void startController(PTDdevice * controller) {
 
 void sendToDeviceViaType(const String& type, StaticJsonDocument<jsonDocumentSize>* document) {
     for (const PTDdevice& device : deviceList) {
-        String currentType = device.type;
-        ESP_LOGI(TAG, "device %s", currentType.c_str());
         if (device.type == type) sendToDeviceViaMac(device.macAddress, document);
     }
 }
 
 bool sendToDeviceViaMac(const String& macAddress, StaticJsonDocument<jsonDocumentSize> *document) {
     (*document)["target"] = macAddress;
-    if( xQueueSend(deviceSendQueue, &document, 10) == pdTRUE) {
-        return true;
-    } else {
+    if( xQueueSend(deviceSendQueue, &document, 10) != pdPASS) {
         ESP_LOGI(TAG, "failed to submit doc to queue");
         return false;
     }
+    return true;
 }
