@@ -19,15 +19,11 @@ QueueHandle_t pairingQueue = xQueueCreate(msg_queue_len, sizeof(StaticJsonDocume
 static const char* TAG = "Controller";
 std::vector<PTDdevice> deviceList = {};
 
-static void addToDeviceReceiveQueue(const uint8_t* mac, clientMessage newMessage) {
-    auto* doc = new StaticJsonDocument<jsonDocumentSize>();
+static void addToDeviceReceiveQueue(const uint8_t *mac, clientMessage newMessage) {
+    auto *doc = new StaticJsonDocument<jsonDocumentSize>();
     DeserializationError error = deserializeJson((*doc), newMessage.content);
     if (!error) {
-        String macTest = mac2String(mac);
-        (*doc)["sender"] = macTest.c_str();
-        String action = (*doc)["action"];
-        String sender = (*doc)["sender"];
-        ESP_LOGI(TAG, "sending to deviceReceiveQueue %s from %s", action.c_str(), sender.c_str());
+        (*doc)["sender"] = mac2String(mac);
         if( xQueueSend(deviceReceiveQueue, &doc, 10)) {
             ESP_LOGI(TAG, "Send successful");
         } else {
