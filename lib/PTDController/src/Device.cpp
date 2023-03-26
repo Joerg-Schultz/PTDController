@@ -29,10 +29,13 @@ static void processSendQueue(void* parameters) {
                 serializeJson((*doc), myMessage.content);
                 for (esp_now_peer_info_t controller: controllerList) {
                     String controllerMac = mac2String(controller.peer_addr);
-                    ESP_LOGI(TAG, "Sending %s to %s", myMessage.content, controllerMac.c_str());
                     esp_err_t result = esp_now_send(controller.peer_addr, (uint8_t *) &myMessage,
-                                                    sizeof(myMessage) + 2);  //Sending "jsondata"
-                    ESP_LOGI(TAG, "Sending: %s", (result == ESP_OK) ? "Success" : "Failed");
+                                                    sizeof(myMessage) + 2);
+                    if (result != ESP_OK) {
+                        ESP_LOGI(TAG, "Sending %s to %s failed", myMessage.content, controllerMac.c_str());
+                        const char *error_name = esp_err_to_name(result);
+                        ESP_LOGI(TAG, "Error Code: %s", error_name);
+                    }
                 }
             }
             delete doc;
@@ -47,23 +50,19 @@ static bool introduceToController(PTDdevice* device) {
 }
 
 bool sendToController(StaticJsonDocument<jsonDocumentSize>* doc) {
-    if( xQueueSend(sendQueue, &doc, 10) == pdTRUE) {
-        ESP_LOGI(TAG, "submitted doc to queue");
-        return true;
-    } else {
-        ESP_LOGI(TAG, "failed to submit doc to queue");
+    if( xQueueSend(sendQueue, &doc, 10) != pdPASS) {
+        ESP_LOGI(TAG, "failed to submit doc to sendQueue");
         return false;
     }
+    return true;
 }
 
 static void addToReceiveQueue(clientMessage newMessage) {
     auto* doc = new StaticJsonDocument<jsonDocumentSize>();
     DeserializationError error = deserializeJson((*doc), newMessage.content);
     if (!error) {
-        if( xQueueSend(receiveQueue, &doc, 10)) {
-            ESP_LOGI(TAG, "Send successful");
-        } else {
-            ESP_LOGI(TAG, "Send failed");
+        if( xQueueSend(receiveQueue, &doc, 10) != pdPASS) {
+            ESP_LOGI(TAG, "Failed to submit to receiveQueue");
         }
     } else {
         ESP_LOGE(TAG, "deserializeJson() failed: %s", error.c_str());
@@ -99,7 +98,7 @@ bool startDevice(PTDdevice* device) {
                 NULL,
                 0,
                 NULL);
-    ESP_LOGI(TAG, "send Task %s", (createReceive == pdPASS) ? "success" : "fail");
+    ESP_LOGI(TAG, "creating processReceiveQueue %s", (createReceive == pdPASS) ? "success" : "fail");
 
     BaseType_t createSend = xTaskCreate(processSendQueue,
                                         "Sending",
@@ -107,7 +106,7 @@ bool startDevice(PTDdevice* device) {
                                         NULL,
                                         0,
                                         NULL);
-    ESP_LOGI(TAG, "send Task %s", (createSend == pdPASS) ? "success" : "fail");
+    ESP_LOGI(TAG, "creating processSendQueue %s", (createSend == pdPASS) ? "success" : "fail");
 
     for (int i = 0; i < scanResults; ++i) {
         String SSID = WiFi.SSID(i);

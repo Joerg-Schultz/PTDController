@@ -15,7 +15,6 @@ void processReceiveQueue(void *parameters) {
 
             StaticJsonDocument<jsonDocumentSize> *doc;
             if (xQueueReceive(receiveQueue, &doc, 0) == pdTRUE) {
-                ESP_LOGI(TAG, "Got action!");
                 if ((*doc)["action"] == "treat") {
                     ESP_LOGI(TAG, "Cookie for my dog :-)");
                     (*doc)["report"] = "success"; // cookie was delivered
